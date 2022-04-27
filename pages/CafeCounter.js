@@ -71,16 +71,74 @@ const Counter = () => {
   }, []);
 
   const getMyOrders = async (userId) => {
-    let myorders = await fetch("/api/getMyOrders?userId=" + userId).then(
-      (resp) => {
-        return resp.json();
-      }
-    );
+    // let myorders = await fetch("/api/getMyOrders?userId=" + userId).then(
+    //   (resp) => {
+    //     return resp.json();
+    //   }
+    // );
+    // let orders = [];
+    // for (let i = 1; i <= Object.keys(myorders).length; i++) {
+    //   orders.push(myorders[Object.keys(myorders)[i - 1]]);
+    // }
+    // dispatch({ type: "orders", payload: { orders: orders } });
+    setStatus("Updating Orders...");
     let orders = [];
-    for (let i = 1; i <= Object.keys(myorders).length; i++) {
-      orders.push(myorders[Object.keys(myorders)[i - 1]]);
+    let orderCount = await mainContract.methods
+      .orderCount()
+      .call()
+      .then((resp) => {
+        return parseInt(resp);
+      })
+      .catch((err) => {
+        setStatus(
+          "Something went wrong while updating orders. Please refresh."
+        );
+        return 0;
+      });
+    for (let i = 1; i <= orderCount; i++) {
+      let user = await mainContract.methods
+        .orderIdTouserId(i)
+        .call()
+        .then((resp) => {
+          return resp;
+        })
+        .catch((err) => {
+          setStatus(
+            "Something went wrong while updating orders. Please refresh."
+          );
+          return 0;
+        });
+
+      if (parseInt(user) === parseInt(userId)) {
+        let productId = await mainContract.methods
+          .orderIdToProductId(i)
+          .call()
+          .then((resp) => {
+            return resp;
+          })
+          .catch((err) => {
+            return 0;
+          });
+        let status = await mainContract.methods
+          .orderIdTostatus(i)
+          .call()
+          .then((resp) => {
+            return resp;
+          })
+          .catch((err) => {
+            return 0;
+          });
+        let orderData = {
+          productId: productId,
+          status: status,
+          user: user,
+          orderId: i,
+        };
+        orders.push(orderData);
+        dispatch({ type: "orders", payload: { orders: orders } });
+      }
     }
-    dispatch({ type: "orders", payload: { orders: orders } });
+    setStatus("");
   };
 
   const poppulateUserData = async () => {
@@ -89,6 +147,7 @@ const Counter = () => {
       .call()
       .then((resp) => {
         let userId = resp;
+        console.log("UserId---------------------------", userId);
         dispatch({ type: "id", payload: { id: userId } });
         getMyOrders(userId);
         mainContract.methods

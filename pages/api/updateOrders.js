@@ -16,13 +16,16 @@ const assetData = {};
 let orderCounto = 0;
 
 const updateOrders = async () => {
+  console.log(1);
   let orderCount = await myContract.methods
     .orderCount()
     .call()
     .then((resp) => {
+      console.log(2, resp);
       return resp;
     })
     .catch((err) => {
+      console.log(3, err);
       return "Error";
     });
   orderCounto = orderCount;
@@ -51,8 +54,10 @@ const updateOrders = async () => {
             .call()
             .then((resp) => {
               user = resp;
+              console.log(4, resp);
             })
             .catch((err) => {
+              console.log(1, err);
               user = "error";
             });
           assetData[orderId] = {
@@ -66,16 +71,19 @@ const updateOrders = async () => {
       })
       .catch((err) => {
         isCounting = false;
+        console.log(5, err);
       });
     orderId++;
   }
   let assetDataJson = JSON.stringify(assetData);
   fs.writeFile("orders.json", assetDataJson, (err) => {
+    console.log(6, err);
     throw err;
   });
 };
 
 export default async function handler(req, res) {
   await updateOrders();
+  console.log(7, "finished updating");
   res.status(200).json({ status: orderCounto });
 }
